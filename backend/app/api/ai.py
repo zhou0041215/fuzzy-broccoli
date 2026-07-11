@@ -634,3 +634,125 @@ def agent_chat(
         "tool_calls": result["tool_calls"],
         "resume_modified": result["resume_modified"],
     })
+
+
+# ============ 知识库 + 规则引擎（不调 AI） ============
+
+class RuleGenerateWorkRequest(BaseModel):
+    company: str
+    position: str
+    description: str = ""
+    period: str = ""
+
+
+class RuleGenerateProjectRequest(BaseModel):
+    name: str
+    description: str = ""
+    tech_stack: str = ""
+
+
+class RuleDiagnoseRequest(BaseModel):
+    resume_id: int
+
+
+class RuleEnrichRequest(BaseModel):
+    resume_id: int
+
+
+@router.post("/rule/work")
+def rule_generate_work(
+    payload: RuleGenerateWorkRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """用规则引擎生成工作经历（不调 AI）。"""
+    from app.services.agent.rule_engine import generate_work_experience
+
+    result = generate_work_experience(
+        company=payload.company,
+        position=payload.position,
+        description=payload.description,
+        period=payload.period,
+    )
+    return success(result)
+
+
+@router.post("/rule/project")
+def rule_generate_project(
+    payload: RuleGenerateProjectRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """用规则引擎生成项目经历（不调 AI）。"""
+    from app.services.agent.rule_engine import generate_project_experience
+
+    result = generate_project_experience(
+        name=payload.name,
+        description=payload.description,
+        tech_stack=payload.tech_stack,
+    )
+    return success(result)
+
+
+@router.post("/rule/diagnose")
+def rule_diagnose(
+    payload: RuleDiagnoseRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """用规则引擎诊断简历（不调 AI）。"""
+    from app.services.agent.rule_engine import diagnose_resume
+
+    resume = get_resume(db, current_user.id, payload.resume_id)
+    data = resume.resume_data or {}
+    result = diagnose_resume(data)
+    return success(result)
+
+
+@router.post("/rule/enrich")
+def rule_enrich(
+    payload: RuleEnrichRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """用知识库丰富简历数据（不调 AI）。"""
+    from app.services.agent.rule_engine import enrich_resume_data
+
+    resume = get_resume(db, current_user.id, payload.resume_id)
+    data = resume.resume_data or {}
+    result = enrich_resume_data(data)
+    return success(result)
+
+
+@router.get("/rule/skills/{position}")
+def rule_suggest_skills(
+    position: str,
+    current_user: User = Depends(get_current_user),
+):
+    """为指定职位推荐技能（不调 AI）。"""
+    from app.services.agent.rule_engine import suggest_skills_for_position
+
+    skills = suggest_skills_for_position(position)
+    return success({"position": position, "skills": skills})
+
+
+@router.get("/rule/companies")
+def rule_list_companies(current_user: User = Depends(get_current_user)):
+    """列出知识库中的公司。"""
+    from app.services.agent.knowledge_base import COMPANY_DB
+
+    companies = [
+        {"name": name, "tags": info["tags"], "level": info["level"]}
+        for name, info in COMPANY_DB.items()
+    ]
+    return success(companies)
+
+
+@router.get("/rule/positions")
+def rule_list_positions(current_user: User = Depends(get_current_user)):
+    """列出知识库中的职位。"""
+    from app.services.agent.knowledge_base import POSITION_DB
+
+    positions = [
+        {"title": title, "skills": info["skills"], "keywords": info["keywords"]}
+        for title, info in POSITION_DB.items()
+    ]
+    return success(positions)
