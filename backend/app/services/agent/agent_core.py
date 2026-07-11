@@ -207,6 +207,8 @@ def run_agent(
         if not reply:
             reply = "我已经处理了你的请求。如果有问题，请告诉我具体需要什么帮助。"
 
+        logger.info("Agent 回复: %s...", reply[:200])
+
         return {
             "reply": reply,
             "steps": state.steps,
