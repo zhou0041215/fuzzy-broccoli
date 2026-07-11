@@ -908,6 +908,75 @@ def get_model_roles(current_user: User = Depends(get_current_user)):
     return success(get_all_model_roles())
 
 
+# ============ Agent 核心 ============
+
+class AgentTaskRequest(BaseModel):
+    task_type: str  # generate, optimize, diagnose, translate
+    resume_id: int
+    params: dict[str, Any] = {}
+
+
+class AgentChatRequest(BaseModel):
+    message: str
+    resume_id: int | None = None
+    history: list[dict[str, str]] | None = None
+
+
+@router.post("/agent/task")
+def run_agent_task(
+    payload: AgentTaskRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """运行 Agent 多步任务。"""
+    from app.services.agent.agent_core import run_multi_step_task
+
+    # 验证简历归属
+    get_resume(db, current_user.id, payload.resume_id)
+
+    result = run_multi_step_task(
+        task_type=payload.task_type,
+        resume_id=payload.resume_id,
+        params=payload.params,
+    )
+
+    return success({
+        "reply": result["reply"],
+        "steps": result["steps"],
+        "tool_calls": result["tool_calls"],
+        "resume_modified": result["resume_modified"],
+        "errors": result["errors"],
+    })
+
+
+@router.post("/agent/chat")
+def agent_chat(
+    payload: AgentChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Agent 对话（支持多步推理和工具调用）。"""
+    from app.services.agent.agent_core import run_agent
+
+    # 验证简历归属
+    if payload.resume_id:
+        get_resume(db, current_user.id, payload.resume_id)
+
+    result = run_agent(
+        user_message=payload.message,
+        resume_id=payload.resume_id,
+        history=payload.history,
+    )
+
+    return success({
+        "reply": result["reply"],
+        "steps": result["steps"],
+        "tool_calls": result["tool_calls"],
+        "resume_modified": result["resume_modified"],
+        "errors": result["errors"],
+    })
+
+
 @router.post("/verify/resume")
 def verify_resume_content(
     payload: VerifyResumeRequest,
