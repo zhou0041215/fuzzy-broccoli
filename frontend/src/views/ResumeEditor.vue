@@ -17,7 +17,7 @@ import ResumeAiChatPanel from "@/components/ai/ResumeAiChatPanel.vue"
 import { normalizeResumeData, useResumeStore } from "@/stores/resume"
 import { useEditorStore, type EditorHistorySnapshot } from "@/stores/editor"
 import { exportPdfApi, exportWordApi } from "@/api/export"
-import { clearResumeChatMessagesApi, decideResumeChatChangeApi, getAiCapabilityApi, getResumeChatMessagesApi, optimizeByJdStreamApi, optimizeSectionStreamApi, scoreResumeStreamApi, sendResumeChatMessageStreamApi, regenerateResumeChatMessageStreamApi, getFlowPointSummaryApi, translateResumeStreamApi, type FlowPointSummary, type AiCapability, type AiChatAttachment, type AiChatModelOption } from "@/api/ai"
+import { clearResumeChatMessagesApi, decideResumeChatChangeApi, getAiCapabilityApi, getResumeChatMessagesApi, optimizeByJdStreamApi, optimizeSectionStreamApi, scoreResumeStreamApi, sendResumeChatMessageStreamApi, regenerateResumeChatMessageStreamApi, getFlowPointSummaryApi, translateResumeStreamApi, type FlowPointSummary, type AiCapability, type AiChatAttachment, type AiChatModelOption, agentChatApi } from "@/api/ai"
 import { previewHtmlApi } from "@/api/resume"
 import { listTemplatesApi, type TemplateItem } from "@/api/template"
 import TemplatePreview from "@/components/templates/TemplatePreview.vue"
@@ -894,66 +894,78 @@ async function loadAiCapability() {
 
 async function sendChatMessage(content: string, attachments: AiChatAttachment[] = []) {
   if (!resumeStore.currentResume || chatLoading.value) return
-  if (!aiCapabilityLoaded.value) await loadAiCapability()
-  if (attachments.length && !supportsChatImages.value) {
-    chatError.value = "当前选择的模型不支持图片输入，请切换到支持多模态的模型后再发送。"
-    return
-  }
+
   flushHistoryCommit()
   chatLoading.value = true
   chatError.value = ""
   const stamp = Date.now()
   const pendingUser = { id: `user-${stamp}`, role: "user", content, attachments }
-  const pendingAssistant = { id: `assistant-${stamp}`, role: "assistant", content: "", streaming: true, phase: "replying", phaseText: "正在组织回复" }
+  const pendingAssistant = { id: `assistant-${stamp}`, role: "assistant", content: "", streaming: true, phase: "replying", phaseText: "Agent 正在思考..." }
   chatMessages.value.push(pendingUser, pendingAssistant)
   const assistantIndex = chatMessages.value.length - 1
+
   try {
     if (!editor.saved) await save({ refreshPreview: false })
-    const response = (await sendResumeChatMessageStreamApi(
-      resumeId.value,
-      { content, attachments, model_config_id: effectiveChatModelId.value },
-      {
-        onDelta: (text) => {
-          const assistant = chatMessages.value[assistantIndex]
-          if (assistant) assistant.content += text
-        },
-        onPhase: (phase, text) => {
-          const assistant = chatMessages.value[assistantIndex]
-          if (assistant) Object.assign(assistant, { phase, phaseText: text })
-        },
-      },
-    )) as any
-    const savedAssistant = response?.assistant_message
+
+    // 使用 Agent API
+    const response = await agentChatApi({
+      message: content,
+      resume_id: resumeId.value,
+      history: chatMessages.value.slice(0, -2).map(m => ({ role: m.role, content: m.content })),
+    })
+
     const assistant = chatMessages.value[assistantIndex]
-    if (assistant && savedAssistant) Object.assign(assistant, savedAssistant, { streaming: false })
-    else if (assistant) assistant.streaming = false
-    if (response?.resolved_message) {
-      const resolved = chatMessages.value.find((item) => item.id === response.resolved_message.id)
-      if (resolved) Object.assign(resolved, response.resolved_message)
+    if (assistant) {
+      // 流式显示效果
+      const fullText = response.data?.reply || "抱歉，我无法处理这个请求。"
+      await streamText(assistantIndex, fullText)
+      assistant.streaming = false
+      assistant.suggestions = response.data?.steps || []
     }
-    if (response?.resume_data && resumeStore.currentResume) {
+
+    // 如果简历被修改，刷新数据
+    if (response.data?.resume_modified) {
       cancelDebouncedSave()
       await resumeStore.fetchResumeDetail(resumeId.value)
-      commitEditorHistory("AI 助手修改")
+      commitEditorHistory("Agent 修改")
       editor.setSaved(true)
       showApplySuccess()
     }
-    const usage = response?.usage
-    if (usage) {
-      const points = Number(usage.points_used || 0)
-      if (points > 0) {
-        showGlobalToast(`本次对话消耗了 ${points} 点 Flow Points`, "success")
-      }
+
+    // 显示执行步骤
+    if (response.data?.steps?.length) {
+      showGlobalToast(`Agent 执行了 ${response.data.steps.length} 个步骤`, "success")
     }
+
     chatLoaded.value = true
   } catch (error: any) {
     const assistant = chatMessages.value[assistantIndex]
     if (assistant) assistant.streaming = false
     if (!assistant?.content) chatMessages.value = chatMessages.value.filter((item) => item.id !== pendingAssistant.id)
-    chatError.value = error.message === "SILENT_ERROR" ? "" : (error.message || "AI 对话失败")
+    chatError.value = error.message === "SILENT_ERROR" ? "" : (error.message || "Agent 对话失败")
   } finally {
     chatLoading.value = false
     getFlowPointSummaryApi().then((data) => (flowPointSummary.value = data)).catch(() => null)
+  }
+}
+
+// 流式输出效果
+async function streamText(assistantIndex: number, fullText: string) {
+  const assistant = chatMessages.value[assistantIndex]
+  if (!assistant) return
+
+  assistant.content = ""
+  const chars = fullText.split("")
+  let i = 0
+
+  while (i < chars.length) {
+    const batch = Math.random() > 0.7 ? 2 : 1
+    const chunk = chars.slice(i, i + batch).join("")
+    assistant.content += chunk
+    i += batch
+
+    const delay = "，。！？、".includes(chunk) ? 50 : Math.random() * 20 + 10
+    await new Promise((resolve) => setTimeout(resolve, delay))
   }
 }
 

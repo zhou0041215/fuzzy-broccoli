@@ -72,6 +72,12 @@ export const decideResumeChatChangeApi = (resumeId: number, messageId: number, a
   request.post(`/ai/resume-chat/${resumeId}/messages/${messageId}/decision`, { action })
 export const getAiCapabilityApi = () => request.get<AiCapability, AiCapability>("/ai/capability")
 
+// Agent API（支持多步推理和工具调用）
+export const agentChatApi = (data: { message: string; resume_id?: number; history?: Array<{ role: string; content: string }> }) =>
+  request.post("/ai/agent/chat", data)
+export const agentTaskApi = (data: { task_type: string; resume_id: number; params?: Record<string, any> }) =>
+  request.post("/ai/agent/task", data)
+
 // 知识库 + 规则引擎 API（不调 AI）
 export const ruleGenerateWorkApi = (data: { resume_id?: number; company: string; position: string; description?: string; period?: string }) =>
   request.post("/ai/rule/work", data)
@@ -87,6 +93,14 @@ export const ruleListCompaniesApi = () =>
   request.get("/ai/rule/companies")
 export const ruleListPositionsApi = () =>
   request.get("/ai/rule/positions")
+
+// 多模型系统 API
+export const getModelRolesApi = () => request.get("/ai/models/roles")
+export const verifyResumeApi = (data: { resume_id: number }) => request.post("/ai/verify/resume", data)
+export const verifyChangesApi = (data: { old_resume: any; new_resume: any }) => request.post("/ai/verify/changes", data)
+export const recognizeIntentApi = (data: { message: string }) => request.post("/ai/intent/recognize", data)
+export const classifyContentApi = (data: { text: string }) => request.post("/ai/content/classify", data)
+export const extractFieldsApi = (data: { text: string }) => request.post("/ai/content/extract", data)
 export const getMyAiRecordsApi = (params: Record<string, unknown>) => request.get<any, any>("/ai/records", { params })
 export const getMyAiHistoriesApi = (params: Record<string, unknown>) => request.get<any, any>("/ai/histories", { params })
 export const getFlowPointSummaryApi = () => request.get<FlowPointSummary, FlowPointSummary>("/ai/flow-points")
