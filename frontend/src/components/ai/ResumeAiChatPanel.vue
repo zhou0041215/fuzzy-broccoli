@@ -397,7 +397,10 @@ watch(
               @change="(value) => emit('update:selectedModelId', value ? Number(value) : null)"
             />
           </div>
-          <div v-else class="text-xs text-zinc-400">默认模型</div>
+          <div v-else class="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-600 ring-1 ring-zinc-200/80 shadow-sm">
+            <Cpu class="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+            <span>{{ selectedModel?.name || 'DeepSeek Chat' }}</span>
+          </div>
           
           <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <input ref="fileInputRef" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleImageChange" />
