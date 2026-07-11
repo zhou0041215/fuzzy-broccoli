@@ -207,7 +207,10 @@ def run_agent(
         if not reply:
             reply = "我已经处理了你的请求。如果有问题，请告诉我具体需要什么帮助。"
 
-        logger.info("Agent 回复: %s...", reply[:200])
+        try:
+            logger.info("Agent 回复: %s...", reply[:200].encode('utf-8', errors='replace').decode('utf-8'))
+        except Exception:
+            pass  # 忽略日志编码错误
 
         return {
             "reply": reply,
