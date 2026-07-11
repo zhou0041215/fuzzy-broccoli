@@ -193,9 +193,19 @@ def run_agent(
                 if "思考" in msg.content or "计划" in msg.content:
                     state.add_step("Agent 思考中...")
 
-        # 提取最终回复
-        last_message = result["messages"][-1]
-        reply = last_message.content if hasattr(last_message, "content") else str(last_message)
+        # 提取最终回复（找到最后一个有内容的 AIMessage）
+        reply = ""
+        for msg in reversed(result.get("messages", [])):
+            if isinstance(msg, AIMessage) and msg.content:
+                reply = msg.content
+                break
+            elif hasattr(msg, "content") and msg.content and not isinstance(msg, ToolMessage):
+                reply = msg.content
+                break
+
+        # 如果还是空的，返回默认消息
+        if not reply:
+            reply = "我已经处理了你的请求。如果有问题，请告诉我具体需要什么帮助。"
 
         return {
             "reply": reply,
