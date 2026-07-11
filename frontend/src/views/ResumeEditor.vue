@@ -919,14 +919,14 @@ async function sendChatMessage(content: string, attachments: AiChatAttachment[] 
     const assistant = chatMessages.value[assistantIndex]
     if (assistant) {
       // 流式显示效果
-      const fullText = response.data?.reply || "抱歉，我无法处理这个请求。"
+      const fullText = response?.reply || "抱歉，我无法处理这个请求。"
       await streamText(assistantIndex, fullText)
       assistant.streaming = false
-      assistant.suggestions = response.data?.steps || []
+      assistant.suggestions = response?.steps || []
     }
 
     // 如果简历被修改，刷新数据
-    if (response.data?.resume_modified) {
+    if (response?.resume_modified) {
       cancelDebouncedSave()
       await resumeStore.fetchResumeDetail(resumeId.value)
       commitEditorHistory("Agent 修改")
@@ -935,8 +935,8 @@ async function sendChatMessage(content: string, attachments: AiChatAttachment[] 
     }
 
     // 显示执行步骤
-    if (response.data?.steps?.length) {
-      showGlobalToast(`Agent 执行了 ${response.data.steps.length} 个步骤`, "success")
+    if (response?.steps?.length) {
+      showGlobalToast(`Agent 执行了 ${response.steps.length} 个步骤`, "success")
     }
 
     chatLoaded.value = true
