@@ -1,4 +1,4 @@
-# VitaFlow Backend
+# FlowCV Backend
 
 FastAPI 后端提供认证、简历管理、HTML 预览、PDF/Word 导出、头像上传和 AI 简历优化接口。
 
@@ -108,8 +108,8 @@ STORAGE_PROVIDER=aliyun_oss
 ALIYUN_OSS_ENDPOINT=https://oss-cn-hangzhou.aliyuncs.com
 ALIYUN_OSS_ACCESS_KEY_ID=你的 AccessKey ID
 ALIYUN_OSS_ACCESS_KEY_SECRET=你的 AccessKey Secret
-ALIYUN_OSS_BUCKET=vitaflow
-ALIYUN_OSS_PUBLIC_URL=https://vitaflow.oss-cn-hangzhou.aliyuncs.com
+ALIYUN_OSS_BUCKET=flowcv
+ALIYUN_OSS_PUBLIC_URL=https://flowcv.oss-cn-hangzhou.aliyuncs.com
 ```
 
 `STORAGE_PUBLIC_URL_MODE=proxy` 时上传后返回 `/api/files/{object_name}`，由后端代理读取文件，适合私有 bucket。`public` 模式会直接返回对象存储或 CDN 的公开地址。

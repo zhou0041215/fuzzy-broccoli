@@ -13,6 +13,22 @@ from app.services.agent.models import get_llm_by_role
 
 logger = logging.getLogger(__name__)
 
+
+def _message_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict):
+                text = item.get("text") or item.get("content")
+                if text:
+                    parts.append(str(text))
+            elif item is not None:
+                parts.append(str(item))
+        return "\n".join(parts)
+    return "" if content is None else str(content)
+
 VISION_SYSTEM_PROMPT = """你是简历图像识别专家。你的职责是：
 
 1. **文字识别**：从截图或扫描件中提取简历内容
@@ -81,7 +97,7 @@ def extract_resume_from_image(image_base64: str, image_type: str = "image/png") 
 
     try:
         response = llm.invoke(messages)
-        content = response.content
+        content = _message_text(response.content)
 
         try:
             if "```json" in content:
@@ -145,7 +161,7 @@ def analyze_resume_layout(image_base64: str, image_type: str = "image/png") -> d
 
     try:
         response = llm.invoke(messages)
-        content = response.content
+        content = _message_text(response.content)
 
         try:
             if "```json" in content:

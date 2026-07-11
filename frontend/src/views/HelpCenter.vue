@@ -196,7 +196,7 @@ const faqs = [
                 </h3>
                 <div class="space-y-4 text-sm sm:text-[15px] leading-relaxed text-zinc-500">
                   <p class="text-[15px] font-medium leading-relaxed text-zinc-800 sm:text-base">
-                    <span class="font-bold text-zinc-900">Elliot:</span> “FlowCV FlowCV是面向现代求职者的次世代智能简历生成与优化平台。我们将前沿的生成式 AI 技术与极简高级的美学排版深度结合，帮助您在激烈的职场竞争中脱颖而出。”
+                    <span class="font-bold text-zinc-900">Elliot:</span> “FlowCV 是面向现代求职者的次世代智能简历生成与优化平台。我们将前沿的生成式 AI 技术与极简高级的美学排版深度结合，帮助您在激烈的职场竞争中脱颖而出。”
                   </p>
                   <p>
                     <strong class="font-medium text-zinc-700">创作理念：</strong>我们坚信，一份优秀的简历不应只是枯燥的信息堆砌，而是展现个人专业度与审美格调的绝佳媒介。FlowCV 致力于消除所有繁琐的格式排版，让求职者能将 100% 的精力聚焦于自身价值的表达——因为，“你的经历，值得更好的表达。”

@@ -4,7 +4,7 @@
 
 FlowCV 是一个面向求职者的智能简历生成与优化平台，提供在线简历编辑、AI 生成与诊断、JD 匹配优化、多模板预览、分享，以及 PDF/Word 导出能力。项目采用前后端分离架构，后端基于 FastAPI，前端基于 Vue 3 + Vite。
 
-**GitHub：[https://github.com/zhou0041215/fuzzy-broccoli](https://github.com/zhou0041215/fuzzy-broccoli)**
+**GitHub：[https://github.com/zhou0041215/flowcv](https://github.com/zhou0041215/flowcv)**
 
 ## 主要功能
 
@@ -97,10 +97,24 @@ CREATE DATABASE flowcv DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ### 2. 启动后端
 
+**macOS / Linux：**
+
 ```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+**Windows PowerShell：**
+
+> **注意：** 请逐行输入以下命令，不要一次性粘贴多行，否则命令会按错误顺序执行。
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 cp .env.example .env
 ```
@@ -121,23 +135,35 @@ uvicorn app.main:app --reload
 
 ### 3. 启动前端
 
+**macOS / Linux：**
+
 ```bash
 cd frontend
 npm install
 cp .env.example .env
-```
-
-确认 `frontend/.env` 中的 `VITE_API_BASE_URL` 指向已启动的后端 API，然后运行：
-
-```bash
 npm run dev
 ```
+
+**Windows PowerShell：**
+
+> **注意：** 请逐行输入，不要一次性粘贴多行。
+
+```powershell
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+确认 `frontend/.env` 中的 `VITE_API_BASE_URL` 指向已启动的后端 API。
 
 前端默认运行在 `http://localhost:5173`，示例配置中的后端地址为 `http://127.0.0.1:8000/api`。
 
 ## 常用命令
 
 ### 后端
+
+**macOS / Linux：**
 
 ```bash
 cd backend
@@ -146,9 +172,20 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+**Windows PowerShell：**
+
+> **注意：** 请逐行输入，不要一次性粘贴多行。
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+alembic upgrade head
+uvicorn app.main:app --reload
+```
+
 ### 前端
 
-```bash
+```powershell
 cd frontend
 npm run dev
 npm run build
@@ -196,7 +233,7 @@ STORAGE_PUBLIC_URL_MODE=proxy
 MINIO_ENDPOINT=127.0.0.1:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
-MINIO_BUCKET=vitaflow
+MINIO_BUCKET=flowcv
 ```
 
 切换到阿里云 OSS：
@@ -206,8 +243,8 @@ STORAGE_PROVIDER=aliyun_oss
 ALIYUN_OSS_ENDPOINT=https://oss-cn-hangzhou.aliyuncs.com
 ALIYUN_OSS_ACCESS_KEY_ID=your-access-key-id
 ALIYUN_OSS_ACCESS_KEY_SECRET=your-access-key-secret
-ALIYUN_OSS_BUCKET=vitaflow
-ALIYUN_OSS_PUBLIC_URL=https://vitaflow.oss-cn-hangzhou.aliyuncs.com
+ALIYUN_OSS_BUCKET=flowcv
+ALIYUN_OSS_PUBLIC_URL=https://flowcv.oss-cn-hangzhou.aliyuncs.com
 ```
 
 `STORAGE_PUBLIC_URL_MODE=proxy` 时，上传后返回 `/api/files/{object_name}`，由后端代理读取对象，适合私有 bucket。`public` 模式会直接返回对象存储或 CDN 的公开地址。

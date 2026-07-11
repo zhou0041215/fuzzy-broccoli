@@ -17,7 +17,7 @@ import ResumeAiChatPanel from "@/components/ai/ResumeAiChatPanel.vue"
 import { normalizeResumeData, useResumeStore } from "@/stores/resume"
 import { useEditorStore, type EditorHistorySnapshot } from "@/stores/editor"
 import { exportPdfApi, exportWordApi } from "@/api/export"
-import { clearResumeChatMessagesApi, decideResumeChatChangeApi, getAiCapabilityApi, getResumeChatMessagesApi, optimizeByJdStreamApi, optimizeSectionStreamApi, scoreResumeStreamApi, sendResumeChatMessageStreamApi, regenerateResumeChatMessageStreamApi, getFlowPointSummaryApi, translateResumeStreamApi, type FlowPointSummary, type AiCapability, type AiChatAttachment, type AiChatModelOption, agentChatApi } from "@/api/ai"
+import { clearResumeChatMessagesApi, decideResumeChatChangeApi, getAiCapabilityApi, getResumeChatMessagesApi, optimizeByJdStreamApi, optimizeSectionStreamApi, scoreResumeStreamApi, sendResumeChatMessageStreamApi, regenerateResumeChatMessageStreamApi, getFlowPointSummaryApi, translateResumeStreamApi, type FlowPointSummary, type AiCapability, type AiChatAttachment, type AiChatModelOption, agentChatApi, ruleDiagnoseApi, ruleEnrichApi, ruleGenerateProjectApi, ruleGenerateWorkApi, ruleSuggestSkillsApi } from "@/api/ai"
 import { previewHtmlApi } from "@/api/resume"
 import { listTemplatesApi, type TemplateItem } from "@/api/template"
 import TemplatePreview from "@/components/templates/TemplatePreview.vue"
@@ -283,7 +283,11 @@ const selectedChatModelId = ref<number | null>(Number(localStorage.getItem("flow
 const chatModels = computed<AiChatModelOption[]>(() => aiCapability.value?.chat_models || [])
 const selectedChatModel = computed(() => chatModels.value.find((item) => item.id === selectedChatModelId.value) || chatModels.value[0] || null)
 const effectiveChatModelId = computed(() => selectedChatModel.value?.id ?? selectedChatModelId.value ?? null)
-const supportsChatImages = computed(() => Boolean(selectedChatModel.value?.supports_multimodal ?? aiCapability.value?.supports_multimodal))
+const supportsChatImages = computed(() => Boolean(
+  selectedChatModel.value?.supports_multimodal
+  || aiCapability.value?.supports_multimodal
+  || aiCapability.value?.vision_enabled,
+))
 
 const isMobile = ref(false)
 const leftPanelWidth = ref(600)
@@ -944,7 +948,12 @@ async function sendChatMessage(content: string, attachments: AiChatAttachment[] 
     const assistant = chatMessages.value[assistantIndex]
     if (assistant) assistant.streaming = false
     if (!assistant?.content) chatMessages.value = chatMessages.value.filter((item) => item.id !== pendingAssistant.id)
-    chatError.value = error.message === "SILENT_ERROR" ? "" : (error.message || "Agent 对话失败")
+    const errorMessage = String(error?.message || "")
+    chatError.value = errorMessage === "SILENT_ERROR"
+      ? ""
+      : errorMessage.toLowerCase().includes("timeout")
+        ? "图片分析时间较长，请稍后重试；系统最多会等待 3 分钟。"
+        : (errorMessage || "Agent 对话失败")
   } finally {
     chatLoading.value = false
     getFlowPointSummaryApi().then((data) => (flowPointSummary.value = data)).catch(() => null)

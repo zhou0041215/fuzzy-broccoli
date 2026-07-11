@@ -2,6 +2,7 @@
 .env
 .venv/
 node_modules/
+backend/package-lock.json
 dist/
 __pycache__/
 .pycache/

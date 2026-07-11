@@ -24,4 +24,5 @@ oss2
 httpx
 langchain
 langchain-openai
+langchain-anthropic
 langgraph

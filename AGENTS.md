@@ -1,10 +1,10 @@
 # AGENTS.md
 
-本文件约束在 VitaFlow 仓库中工作的代码代理。除非用户明确说明，以下规则适用于整个仓库。
+本文件约束在 FlowCV 仓库中工作的代码代理。除非用户明确说明，以下规则适用于整个仓库。
 
 ## 项目认知
 
-- VitaFlow 是前后端分离的智能简历平台。
+- FlowCV 是前后端分离的智能简历平台。
 - 后端位于 `backend/`，使用 FastAPI、SQLAlchemy、Alembic、MySQL、Redis、LangChain/LangGraph、Jinja2、Playwright/WeasyPrint、python-docx。
 - 前端位于 `frontend/`，使用 Vue 3、TypeScript、Vite、Vue Router、Pinia、Tailwind CSS。
 - 后端接口统一挂载在 `/api` 下，响应结构应保持 `{ code, message, data }`。

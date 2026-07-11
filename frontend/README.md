@@ -1,4 +1,4 @@
-# VitaFlow Frontend
+# FlowCV Frontend
 
 Vue3 + TypeScript + Vite 前端，提供首页、登录注册、简历列表、模板页和三栏式简历编辑器。
 

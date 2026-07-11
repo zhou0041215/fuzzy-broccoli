@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Literal
 
-from langchain_openai import ChatOpenAI
+from langchain_core.language_models.chat_models import BaseChatModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.exceptions import AppException
 from app.models.ai_config import AiModelConfig
+from app.services.ai.chat_model_factory import create_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -27,29 +28,24 @@ ROLE_DESCRIPTIONS = {
 }
 
 
-def _config_to_llm(config: AiModelConfig, timeout: int | None = None) -> ChatOpenAI:
-    return ChatOpenAI(
-        api_key=config.api_key,
-        base_url=config.base_url,
-        model=config.model,
-        temperature=float(config.temperature or 0.7),
-        timeout=timeout or int(config.timeout or 60),
-        max_tokens=int(config.max_tokens or 8192),
-    )
+def _config_to_llm(config: AiModelConfig, timeout: int | None = None) -> BaseChatModel:
+    return create_chat_model(config, timeout)
 
 
-def _fallback_llm(timeout: int | None = None) -> ChatOpenAI:
-    return ChatOpenAI(
-        api_key=settings.ai_api_key,
-        base_url=settings.ai_base_url,
-        model=settings.ai_model,
-        temperature=float(settings.ai_temperature),
-        timeout=timeout or int(settings.ai_timeout),
-        max_tokens=int(settings.ai_max_tokens),
-    )
+def _fallback_llm(timeout: int | None = None) -> BaseChatModel:
+    class SettingsModelConfig:
+        provider = "openai-compatible"
+        api_key = settings.ai_api_key
+        base_url = settings.ai_base_url
+        model = settings.ai_model
+        temperature = float(settings.ai_temperature)
+        timeout = int(settings.ai_timeout)
+        max_tokens = int(settings.ai_max_tokens)
+
+    return create_chat_model(SettingsModelConfig(), timeout)
 
 
-def get_llm_by_role(role: ModelRole = "main", timeout: int | None = None) -> ChatOpenAI:
+def get_llm_by_role(role: ModelRole = "main", timeout: int | None = None) -> BaseChatModel:
     """按角色获取 LLM 实例。
 
     优先从数据库查找对应 role 的模型配置，找不到则回退到环境变量配置。

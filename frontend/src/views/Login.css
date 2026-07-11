@@ -1,4 +1,4 @@
-#app #vita-auth-page.auth-page {
+#app #flowcv-auth-page.auth-page {
   --paper: #f3f6fa;
   --paper-bright: #fbfcfe;
   --ink: #111827;
@@ -13,7 +13,7 @@
   color: var(--ink);
 }
 
-#app #vita-auth-page.auth-page::before {
+#app #flowcv-auth-page.auth-page::before {
   position: absolute;
   inset: -30% auto auto -20%;
   width: 70vw;
@@ -25,7 +25,7 @@
   animation: ambient-drift 14s ease-in-out infinite alternate;
 }
 
-#app #vita-auth-page.auth-page::after {
+#app #flowcv-auth-page.auth-page::after {
   position: absolute;
   right: -12vw;
   bottom: -38vw;
@@ -38,7 +38,7 @@
   animation: ambient-drift-reverse 18s ease-in-out infinite alternate;
 }
 
-#app #vita-auth-page {
+#app #flowcv-auth-page {
 .auth-grid {
   position: absolute;
   inset: 0;
@@ -292,7 +292,7 @@
 }
 
 @media (max-width: 1280px) {
-  #app #vita-auth-page {
+  #app #flowcv-auth-page {
   .auth-topbar, .auth-layout { width: min(calc(100% - 56px), 1640px); }
   .auth-layout { grid-template-columns: minmax(480px, 1fr) 440px; gap: 40px; }
   .story-title { font-size: 52px !important; }
@@ -302,7 +302,7 @@
 }
 
 @media (max-width: 940px) {
-  #app #vita-auth-page {
+  #app #flowcv-auth-page {
   .auth-page { overflow: auto; }
   .auth-topbar { display: none; }
   .auth-layout { display: block; }
@@ -318,7 +318,7 @@
 }
 
 @media (max-width: 540px) {
-  #app #vita-auth-page {
+  #app #flowcv-auth-page {
   .story-panel { padding: 38px 18px 28px; }
   .story-eyebrow { margin-bottom: 13px; font-size: 10px; }
   .story-title { font-size: 38px !important; letter-spacing: -0.04em; }
@@ -340,7 +340,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #app #vita-auth-page {
+  #app #flowcv-auth-page {
   .auth-page::before, .auth-page::after, .auth-topbar, .story-eyebrow, .story-title, .story-description, .resume-lab, .resume-sheet, .folio-shadow, .ai-annotation, .rail-item i, .story-footer, .auth-zone { animation: none !important; }
   .scan-line { animation: none !important; transform: translateY(115px); }
   .flipper, .auth-flip, .primary-action { transition: none !important; }

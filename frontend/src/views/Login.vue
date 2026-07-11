@@ -189,7 +189,7 @@ async function handleResetPassword() {
 </script>
 
 <template>
-  <div id="vita-auth-page" class="auth-page">
+  <div id="flowcv-auth-page" class="auth-page">
     <div class="auth-grid" aria-hidden="true"></div>
     <header class="auth-topbar">
       <RouterLink to="/" class="brand-link" aria-label="返回 FlowCV 首页">

@@ -8,7 +8,7 @@ import WorkflowSection from "@/components/home/WorkflowSection.vue"
 
 <template>
   <AppLayout>
-    <main id="vita-home" class="vita-home">
+    <main id="flowcv-home" class="flowcv-home">
       <HeroSection />
       <FeatureSection />
       <TemplateShowcase />
@@ -22,7 +22,7 @@ import WorkflowSection from "@/components/home/WorkflowSection.vue"
         <div class="footer-links">
           <RouterLink to="/templates">模板中心</RouterLink>
           <RouterLink to="/help">使用帮助</RouterLink>
-          <a href="https://github.com/zhou0041215/fuzzy-broccoli" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://github.com/zhou0041215/flowcv" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
       </footer>
     </main>

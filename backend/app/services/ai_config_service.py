@@ -205,6 +205,16 @@ def get_active_ai_config(db: Session | None = None) -> AiRuntimeConfig:
 def public_ai_capability(db: Session, *, include_all_chat_models: bool = False) -> dict[str, Any]:
     config = get_active_ai_config(db)
     default_chat_config = get_default_chat_ai_config(db)
+    vision_enabled = db.scalar(
+        select(AiModelConfig.id)
+        .where(
+            AiModelConfig.role == "vision",
+            AiModelConfig.is_active == True,  # noqa: E712
+            AiModelConfig.supports_multimodal == True,  # noqa: E712
+            AiModelConfig.api_key != "",
+        )
+        .limit(1)
+    )
     chat_rule = db.scalar(select(FlowPointRule).where(FlowPointRule.feature_type == "ai_chat"))
     default_points_per_call = _decimal_number(getattr(chat_rule, "points_per_call", None))
     default_input_rate = _decimal_number(getattr(chat_rule, "points_per_million_input_tokens", None))
@@ -230,6 +240,7 @@ def public_ai_capability(db: Session, *, include_all_chat_models: bool = False) 
         "id": config.id,
         "name": config.name,
         "supports_multimodal": config.supports_multimodal,
+        "vision_enabled": vision_enabled is not None,
         "context_messages": config.context_messages,
         "default_chat_model_id": default_chat_config.id,
         "chat_models": [

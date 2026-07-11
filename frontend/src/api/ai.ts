@@ -20,9 +20,18 @@ export type AiCapability = {
   id?: number | null
   name: string
   supports_multimodal: boolean
+  vision_enabled?: boolean
   context_messages: number
   default_chat_model_id?: number | null
   chat_models?: AiChatModelOption[]
+}
+export type AgentChatResponse = {
+  reply: string
+  steps: string[]
+  tool_calls: Array<Record<string, unknown>>
+  resume_modified: boolean
+  errors: string[]
+  image_analysis?: Record<string, unknown> | null
 }
 export type AiTokenUsage = {
   input_tokens: number
@@ -74,7 +83,7 @@ export const getAiCapabilityApi = () => request.get<AiCapability, AiCapability>(
 
 // Agent API（支持多步推理、工具调用和视觉识别）
 export const agentChatApi = (data: { message: string; resume_id?: number; history?: Array<{ role: string; content: string }>; image_url?: string }) =>
-  request.post("/ai/agent/chat", data)
+  request.post<AgentChatResponse, AgentChatResponse>("/ai/agent/chat", data, { timeout: 180000 })
 export const agentTaskApi = (data: { task_type: string; resume_id: number; params?: Record<string, any> }) =>
   request.post("/ai/agent/task", data)
 

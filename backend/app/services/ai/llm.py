@@ -1,16 +1,9 @@
-from langchain_openai import ChatOpenAI
+from langchain_core.language_models.chat_models import BaseChatModel
 
 from app.services.ai_config_service import get_active_ai_config
+from app.services.ai.chat_model_factory import create_chat_model
 
 
-def get_llm(timeout: int | None = None) -> ChatOpenAI:
+def get_llm(timeout: int | None = None) -> BaseChatModel:
     config = get_active_ai_config()
-    request_timeout = max(int(config.timeout or 0), int(timeout or 0)) if timeout else config.timeout
-    return ChatOpenAI(
-        api_key=config.api_key,
-        base_url=config.base_url,
-        model=config.model,
-        temperature=config.temperature,
-        timeout=request_timeout,
-        max_tokens=config.max_tokens,
-    )
+    return create_chat_model(config, timeout)

@@ -23,7 +23,7 @@ const displayTemplates = computed(() => {
 
 function startAutoScroll() {
   const track = templateTrackRef.value
-  if (!track) return
+  if (!track || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
   const halfWidth = track.scrollWidth / 2
 
   function step() {
@@ -78,11 +78,13 @@ onMounted(async () => {
     templates.value = []
   }
   await nextTick()
-  if (templates.value.length) startAutoScroll()
+  scrollPos = 0
+  if (templateTrackRef.value) templateTrackRef.value.scrollLeft = 0
+  startAutoScroll()
 })
 
 onUnmounted(() => {
-  if (animationId) cancelAnimationFrame(animationId)
+  if (animationId !== null) cancelAnimationFrame(animationId)
 })
 </script>
 
@@ -125,7 +127,7 @@ onUnmounted(() => {
           </RouterLink>
         </template>
         <template v-else>
-          <RouterLink v-for="(name, index) in ['清晰叙事', '专业极简', '技术聚焦']" :key="name" to="/templates" class="template-card template-placeholder" :class="`template-card-${index + 1}`" @click="preventTemplateClick">
+          <RouterLink v-for="(name, index) in ['清晰叙事', '专业极简', '技术聚焦', '清晰叙事', '专业极简', '技术聚焦']" :key="`${name}-${index}`" to="/templates" class="template-card template-placeholder" :class="`template-card-${index % 3 + 1}`" @click="preventTemplateClick">
             <div class="placeholder-paper"><b></b><i></i><i></i><h3></h3><p></p><p></p><h3></h3><p></p><p></p></div>
             <div class="template-caption"><span>{{ name }}</span><small>ATS FRIENDLY</small></div>
           </RouterLink>
