@@ -71,6 +71,22 @@ export const clearResumeChatMessagesApi = (resumeId: number) => request.delete(`
 export const decideResumeChatChangeApi = (resumeId: number, messageId: number, action: "apply" | "reject") =>
   request.post(`/ai/resume-chat/${resumeId}/messages/${messageId}/decision`, { action })
 export const getAiCapabilityApi = () => request.get<AiCapability, AiCapability>("/ai/capability")
+
+// 知识库 + 规则引擎 API（不调 AI）
+export const ruleGenerateWorkApi = (data: { resume_id?: number; company: string; position: string; description?: string; period?: string }) =>
+  request.post("/ai/rule/work", data)
+export const ruleGenerateProjectApi = (data: { resume_id?: number; name: string; description?: string; tech_stack?: string }) =>
+  request.post("/ai/rule/project", data)
+export const ruleDiagnoseApi = (data: { resume_id: number }) =>
+  request.post("/ai/rule/diagnose", data)
+export const ruleEnrichApi = (data: { resume_id: number }) =>
+  request.post("/ai/rule/enrich", data)
+export const ruleSuggestSkillsApi = (position: string) =>
+  request.get(`/ai/rule/skills/${encodeURIComponent(position)}`)
+export const ruleListCompaniesApi = () =>
+  request.get("/ai/rule/companies")
+export const ruleListPositionsApi = () =>
+  request.get("/ai/rule/positions")
 export const getMyAiRecordsApi = (params: Record<string, unknown>) => request.get<any, any>("/ai/records", { params })
 export const getMyAiHistoriesApi = (params: Record<string, unknown>) => request.get<any, any>("/ai/histories", { params })
 export const getFlowPointSummaryApi = () => request.get<FlowPointSummary, FlowPointSummary>("/ai/flow-points")

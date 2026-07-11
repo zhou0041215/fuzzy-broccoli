@@ -17,7 +17,7 @@ import ResumeAiChatPanel from "@/components/ai/ResumeAiChatPanel.vue"
 import { normalizeResumeData, useResumeStore } from "@/stores/resume"
 import { useEditorStore, type EditorHistorySnapshot } from "@/stores/editor"
 import { exportPdfApi, exportWordApi } from "@/api/export"
-import { clearResumeChatMessagesApi, decideResumeChatChangeApi, getAiCapabilityApi, getResumeChatMessagesApi, optimizeByJdStreamApi, optimizeSectionStreamApi, scoreResumeStreamApi, sendResumeChatMessageStreamApi, regenerateResumeChatMessageStreamApi, getFlowPointSummaryApi, translateResumeStreamApi, type FlowPointSummary, type AiCapability, type AiChatAttachment, type AiChatModelOption } from "@/api/ai"
+import { clearResumeChatMessagesApi, decideResumeChatChangeApi, getAiCapabilityApi, getResumeChatMessagesApi, optimizeByJdStreamApi, optimizeSectionStreamApi, scoreResumeStreamApi, sendResumeChatMessageStreamApi, regenerateResumeChatMessageStreamApi, getFlowPointSummaryApi, translateResumeStreamApi, type FlowPointSummary, type AiCapability, type AiChatAttachment, type AiChatModelOption, ruleGenerateWorkApi, ruleGenerateProjectApi, ruleDiagnoseApi, ruleEnrichApi, ruleSuggestSkillsApi } from "@/api/ai"
 import { previewHtmlApi } from "@/api/resume"
 import { listTemplatesApi, type TemplateItem } from "@/api/template"
 import TemplatePreview from "@/components/templates/TemplatePreview.vue"
@@ -894,67 +894,161 @@ async function loadAiCapability() {
 
 async function sendChatMessage(content: string, attachments: AiChatAttachment[] = []) {
   if (!resumeStore.currentResume || chatLoading.value) return
-  if (!aiCapabilityLoaded.value) await loadAiCapability()
-  if (attachments.length && !supportsChatImages.value) {
-    chatError.value = "当前选择的模型不支持图片输入，请切换到支持多模态的模型后再发送。"
-    return
-  }
+
+  // 使用规则引擎（不调 AI）
   flushHistoryCommit()
   chatLoading.value = true
   chatError.value = ""
   const stamp = Date.now()
   const pendingUser = { id: `user-${stamp}`, role: "user", content, attachments }
-  const pendingAssistant = { id: `assistant-${stamp}`, role: "assistant", content: "", streaming: true, phase: "replying", phaseText: "正在组织回复" }
+  const pendingAssistant = { id: `assistant-${stamp}`, role: "assistant", content: "", streaming: true, phase: "replying", phaseText: "正在处理" }
   chatMessages.value.push(pendingUser, pendingAssistant)
   const assistantIndex = chatMessages.value.length - 1
+
   try {
     if (!editor.saved) await save({ refreshPreview: false })
-    const response = (await sendResumeChatMessageStreamApi(
-      resumeId.value,
-      { content, attachments, model_config_id: effectiveChatModelId.value },
-      {
-        onDelta: (text) => {
-          const assistant = chatMessages.value[assistantIndex]
-          if (assistant) assistant.content += text
-        },
-        onPhase: (phase, text) => {
-          const assistant = chatMessages.value[assistantIndex]
-          if (assistant) Object.assign(assistant, { phase, phaseText: text })
-        },
-      },
-    )) as any
-    const savedAssistant = response?.assistant_message
+
+    // 解析用户意图
+    const result = await processWithRuleEngine(content)
+
     const assistant = chatMessages.value[assistantIndex]
-    if (assistant && savedAssistant) Object.assign(assistant, savedAssistant, { streaming: false })
-    else if (assistant) assistant.streaming = false
-    if (response?.resolved_message) {
-      const resolved = chatMessages.value.find((item) => item.id === response.resolved_message.id)
-      if (resolved) Object.assign(resolved, response.resolved_message)
+    if (assistant) {
+      assistant.content = result.reply
+      assistant.streaming = false
+      assistant.suggestions = result.suggestions || []
     }
-    if (response?.resume_data && resumeStore.currentResume) {
+
+    // 如果简历被修改，刷新数据
+    if (result.resumeModified) {
       cancelDebouncedSave()
       await resumeStore.fetchResumeDetail(resumeId.value)
-      commitEditorHistory("AI 助手修改")
+      commitEditorHistory("规则引擎修改")
       editor.setSaved(true)
       showApplySuccess()
     }
-    const usage = response?.usage
-    if (usage) {
-      const points = Number(usage.points_used || 0)
-      if (points > 0) {
-        showGlobalToast(`本次对话消耗了 ${points} 点 Flow Points`, "success")
-      }
-    }
+
     chatLoaded.value = true
   } catch (error: any) {
     const assistant = chatMessages.value[assistantIndex]
     if (assistant) assistant.streaming = false
     if (!assistant?.content) chatMessages.value = chatMessages.value.filter((item) => item.id !== pendingAssistant.id)
-    chatError.value = error.message === "SILENT_ERROR" ? "" : (error.message || "AI 对话失败")
+    chatError.value = error.message || "处理失败"
   } finally {
     chatLoading.value = false
-    getFlowPointSummaryApi().then((data) => (flowPointSummary.value = data)).catch(() => null)
   }
+}
+
+async function processWithRuleEngine(content: string): Promise<{ reply: string; suggestions?: string[]; resumeModified?: boolean }> {
+  const resumeId = resumeStore.currentResume?.id
+
+  // 诊断简历
+  if (/诊断|检查|问题|缺什么|体检|评分/.test(content)) {
+    if (!resumeId) return { reply: "请先打开一个简历" }
+    const { data } = await ruleDiagnoseApi({ resume_id: resumeId })
+    const issues = data.issues || []
+    const warnings = data.warnings || []
+    const suggestions = data.suggestions || []
+    let reply = `📋 **简历诊断结果**（完整度：${data.completeness}%）\n\n`
+    if (issues.length) reply += `❌ **问题**：${issues.join("；")}\n\n`
+    if (warnings.length) reply += `⚠️ **警告**：${warnings.join("；")}\n\n`
+    if (suggestions.length) reply += `💡 **建议**：${suggestions.join("；")}`
+    if (!issues.length && !warnings.length) reply += "✅ 简历结构完整，没有发现明显问题！"
+    return { reply, suggestions: ["帮我补充工作经历", "推荐适合的技能"] }
+  }
+
+  // 生成工作经历
+  if (/工作|经历|实习|公司/.test(content)) {
+    const companyMatch = content.match(/在([一-龥a-zA-Z]+?)(做|负责|从事|担任|干)/)
+    const positionMatch = content.match(/(做|负责|从事|担任)([一-龥a-zA-Z]+?)[，,。]/)
+    const company = companyMatch?.[1] || "目标公司"
+    const position = positionMatch?.[2] || extractPosition(content)
+
+    const { data } = await ruleGenerateWorkApi({
+      resume_id: resumeId,
+      company,
+      position,
+      description: content,
+    })
+
+    let reply = `✅ **已生成工作经历**${data.saved ? "并写入简历" : ""}\n\n`
+    reply += `**公司**：${data.company}\n`
+    reply += `**职位**：${data.position}\n`
+    reply += `**描述**：${data.description}\n`
+    if (data.suggested_skills?.length) {
+      reply += `\n💡 **推荐技能**：${data.suggested_skills.join("、")}`
+    }
+    return { reply, resumeModified: data.saved, suggestions: ["继续添加工作经历", "诊断简历问题"] }
+  }
+
+  // 生成项目经历
+  if (/项目|系统|平台|开发/.test(content)) {
+    const nameMatch = content.match(/(开发|做|负责)(了?)([一-龥a-zA-Z]+?)(系统|平台|项目|工具|应用)/)
+    const name = nameMatch ? nameMatch[3] + nameMatch[4] : "项目经历"
+
+    const { data } = await ruleGenerateProjectApi({
+      resume_id: resumeId,
+      name,
+      description: content,
+      tech_stack: content,
+    })
+
+    let reply = `✅ **已生成项目经历**${data.saved ? "并写入简历" : ""}\n\n`
+    reply += `**项目**：${data.name}\n`
+    reply += `**描述**：${data.description}\n`
+    if (data.tech_stack?.length) {
+      reply += `\n**技术栈**：${data.tech_stack.join("、")}`
+    }
+    if (data.suggestions?.length) {
+      reply += `\n\n💡 **参考建议**：\n`
+      data.suggestions.forEach((s: any) => {
+        reply += `- ${s.description}\n`
+      })
+    }
+    return { reply, resumeModified: data.saved, suggestions: ["继续添加项目经历", "推荐适合的技能"] }
+  }
+
+  // 推荐技能
+  if (/技能|技术栈|学什么|推荐/.test(content)) {
+    const position = extractPosition(content)
+    if (position) {
+      const { data } = await ruleSuggestSkillsApi(position)
+      let reply = `🎯 **${data.position} 推荐技能**\n\n`
+      reply += data.skills.join("、")
+      return { reply, suggestions: ["添加到我的简历", "查看其他职位"] }
+    }
+  }
+
+  // 丰富简历
+  if (/丰富|完善|补充|增强/.test(content)) {
+    if (!resumeId) return { reply: "请先打开一个简历" }
+    const { data } = await ruleEnrichApi({ resume_id: resumeId })
+    let reply = `📊 **简历丰富建议**\n\n`
+    if (data._suggested_skills?.length) {
+      reply += `💡 **建议添加的技能**：${data._suggested_skills.join("、")}\n\n`
+    }
+    reply += `以上是根据你的经历自动推荐的内容，可以在编辑器中手动添加。`
+    return { reply, suggestions: ["诊断简历问题", "查看推荐技能"] }
+  }
+
+  // 默认回复
+  return {
+    reply: `你好！我是简历助手，可以帮你：\n\n- 📝 **生成工作经历**：说"在XX公司做XX"\n- 🚀 **生成项目经历**：说"开发了XX系统"\n- 🔍 **诊断简历**：说"检查简历问题"\n- 🎯 **推荐技能**：说"XX岗位需要什么技能"\n- 📊 **丰富简历**：说"帮我完善简历"`,
+    suggestions: ["诊断简历问题", "在腾讯做后端开发", "推荐产品经理技能"],
+  }
+}
+
+function extractPosition(text: string): string {
+  const positions = ["后端开发", "前端开发", "全栈开发", "算法工程师", "数据分析师", "产品经理", "UI设计师", "运营", "测试", "运维"]
+  for (const pos of positions) {
+    if (text.includes(pos)) return pos
+  }
+  if (text.includes("后端") || text.includes("服务端")) return "后端开发"
+  if (text.includes("前端") || text.includes("Web")) return "前端开发"
+  if (text.includes("算法") || text.includes("AI")) return "算法工程师"
+  if (text.includes("产品")) return "产品经理"
+  if (text.includes("数据")) return "数据分析师"
+  if (text.includes("设计")) return "UI设计师"
+  return "后端开发"
 }
 
 async function regenerateChatMessage(message?: any, overrideContent?: string, overrideAttachments?: AiChatAttachment[]) {
